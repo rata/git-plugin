@@ -231,6 +231,9 @@ public class DefaultBuildChooser extends BuildChooser {
         // this ensures the fairness in scheduling.
         Collections.sort(revs,new CommitTimeComparator(utils.git.getRepository()));
 
+        // HACK: Sort them new to old, to see if the rev we want is there
+        Collections.reverse(revs);
+
         return revs;
     }
 
