@@ -175,66 +175,74 @@ public class DefaultBuildChooser extends BuildChooser {
         List<Revision> revs = new ArrayList<Revision>(utils.getAllBranchRevisions());
         verbose(listener, "Starting with all the branches: {0}", revs);
 
-        // 2. Filter out any revisions that don't contain any branches that we
-        // actually care about (spec)
-        for (Iterator<Revision> i = revs.iterator(); i.hasNext();) {
-            Revision r = i.next();
-
-            // filter out uninteresting branches
-            for (Iterator<Branch> j = r.getBranches().iterator(); j.hasNext();) {
-                Branch b = j.next();
-                boolean keep = false;
-                for (BranchSpec bspec : gitSCM.getBranches()) {
-                    if (bspec.matches(b.getName())) {
-                        keep = true;
-                        break;
-                    }
-                }
-
-                if (!keep) {
-                    verbose(listener, "Ignoring {0} because it doesn''t match branch specifier", b);
-                    j.remove();
-                }
-            }
-
-            if (r.getBranches().size() == 0) {
-                verbose(listener, "Ignoring {0} because we don''t care about any of the branches that point to it", r);
-                i.remove();
-            }
-        }
-
-        verbose(listener, "After branch filtering: {0}", revs);
-
-        // 3. We only want 'tip' revisions
-        revs = utils.filterTipBranches(revs);
-        verbose(listener, "After non-tip filtering: {0}", revs);
-
-        // 4. Finally, remove any revisions that have already been built.
-        verbose(listener, "Removing what''s already been built: {0}", data.getBuildsByBranchName());
-        for (Iterator<Revision> i = revs.iterator(); i.hasNext();) {
-            Revision r = i.next();
-
-            if (data.hasBeenBuilt(r.getSha1())) {
-                i.remove();
-            }
-        }
-        verbose(listener, "After filtering out what''s already been built: {0}", revs);
-
-        // if we're trying to run a build (not an SCM poll) and nothing new
-        // was found then just run the last build again
-        if (!isPollCall && revs.isEmpty() && data.getLastBuiltRevision() != null) {
-            verbose(listener, "Nothing seems worth building, so falling back to the previously built revision: {0}", data.getLastBuiltRevision());
-            return Collections.singletonList(data.getLastBuiltRevision());
-        }
-
-        // 5. sort them by the date of commit, old to new
-        // this ensures the fairness in scheduling.
-        Collections.sort(revs,new CommitTimeComparator(utils.git.getRepository()));
-
         // HACK: Sort them new to old, to see if the rev we want is there
+        Collections.sort(revs,new CommitTimeComparator(utils.git.getRepository()));
         Collections.reverse(revs);
 
+	// Return the newest revision, always. Ignore all the filters
         return revs;
+
+
+        // 2. Filter out any revisions that don't contain any branches that we
+        // actually care about (spec)
+        //for (Iterator<Revision> i = revs.iterator(); i.hasNext();) {
+        //    Revision r = i.next();
+
+        //    // filter out uninteresting branches
+        //    for (Iterator<Branch> j = r.getBranches().iterator(); j.hasNext();) {
+        //        Branch b = j.next();
+        //        boolean keep = false;
+        //        for (BranchSpec bspec : gitSCM.getBranches()) {
+        //            if (bspec.matches(b.getName())) {
+        //                keep = true;
+        //                break;
+        //            }
+        //        }
+
+        //        if (!keep) {
+        //            verbose(listener, "Ignoring {0} because it doesn''t match branch specifier", b);
+        //            j.remove();
+        //        }
+        //    }
+
+        //    if (r.getBranches().size() == 0) {
+        //        verbose(listener, "Ignoring {0} because we don''t care about any of the branches that point to it", r);
+        //        i.remove();
+        //    }
+        //}
+
+        //verbose(listener, "After branch filtering: {0}", revs);
+
+        //// 3. We only want 'tip' revisions
+        //revs = utils.filterTipBranches(revs);
+        //verbose(listener, "After non-tip filtering: {0}", revs);
+
+        //// 4. Finally, remove any revisions that have already been built.
+        //verbose(listener, "Removing what''s already been built: {0}", data.getBuildsByBranchName());
+        //for (Iterator<Revision> i = revs.iterator(); i.hasNext();) {
+        //    Revision r = i.next();
+
+        //    if (data.hasBeenBuilt(r.getSha1())) {
+        //        i.remove();
+        //    }
+        //}
+        //verbose(listener, "After filtering out what''s already been built: {0}", revs);
+
+        //// if we're trying to run a build (not an SCM poll) and nothing new
+        //// was found then just run the last build again
+        //if (!isPollCall && revs.isEmpty() && data.getLastBuiltRevision() != null) {
+        //    verbose(listener, "Nothing seems worth building, so falling back to the previously built revision: {0}", data.getLastBuiltRevision());
+        //    return Collections.singletonList(data.getLastBuiltRevision());
+        //}
+
+        //// 5. sort them by the date of commit, old to new
+        //// this ensures the fairness in scheduling.
+        //Collections.sort(revs,new CommitTimeComparator(utils.git.getRepository()));
+
+        //// HACK: Sort them new to old, to see if the rev we want is there
+        //Collections.reverse(revs);
+
+        //return revs;
     }
 
     /**
